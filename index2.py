@@ -13,37 +13,49 @@ output_path = os.path.join(folder, "attestation_report.xlsx")
 # --- LOAD DATA ---
 aps_df = pd.read_excel(aps_path)
 cio_df = pd.read_excel(cio_path)
-lookup1 = pd.read_excel(lookup_path, sheet_name="Sheet1")    # For Support Owner, APS SLT
-lookup2 = pd.read_excel(lookup_path, sheet_name="Sheet2")    # For Tech Exec, CIO Exec
+lookup1 = pd.read_excel(lookup_path, sheet_name="Sheet1")  # For Support Owner, APS SLT
+lookup2 = pd.read_excel(lookup_path, sheet_name="Sheet2")  # For Tech Exec, CIO Exec
 
 # --- CLEAN & RENAME APS FILE ---
-aps_df = aps_df.drop(columns=aps_df.columns[7:], errors='ignore')  # Drop H-J
-aps_df.rename(columns={
-    'contextid': 'AIT #',
-    'context name': 'AIT Name',
-    'title': 'Assessment Name',
-    'status': 'Trident status',
-    'due date': 'Due Date',
-    'completion date': 'Application Owner',
-    'accountable': 'APS Accountable'
-}, inplace=True)
+aps_df.columns = ['contextid', 'context name', 'title', 'status', 'due date', 'completion date', 'accountable']
+aps_df = aps_df.drop(columns=aps_df.columns[7:], errors='ignore')  # Drop extra cols if exist
+
+# Print debug
+print("APS DF after drop, before insert:")
+print("Columns:", aps_df.columns.tolist())
+print("Count:", len(aps_df.columns))
+
+# Insert columns
+aps_df.insert(4, 'CPPM Review Status', '')
+aps_df.insert(5, 'PECM_Delegate', '')
+
+# Rename columns after insert
+aps_df.columns = [
+    'AIT #', 'AIT Name', 'Assessment Name', 'Trident status',
+    'CPPM Review Status', 'Due Date', 'PECM_Delegate',
+    'Application Owner', 'APS Accountable'
+]
 
 # --- CLEAN & RENAME CIO FILE ---
-cio_df = cio_df.drop(columns=['completion date'], errors='ignore')  # Drop F
-cio_df = cio_df.drop(columns=cio_df.columns[6:], errors='ignore')   # Drop G-I
-cio_df.rename(columns={
-    'contextid': 'AIT #',
-    'context name': 'AIT Name',
-    'title': 'Assessment Name',
-    'status': 'Trident status',
-    'due date': 'Due Date',
-    'accountable': 'Application Owner'
-}, inplace=True)
+cio_df.columns = ['contextid', 'context name', 'title', 'status', 'due date', 'completion date', 'accountable']
+cio_df = cio_df.drop(columns=['completion date'], errors='ignore')
+cio_df = cio_df.drop(columns=cio_df.columns[6:], errors='ignore')
 
-# --- ADD COLUMNS BEFORE & AFTER Due Date ---
-for df in [aps_df, cio_df]:
-    df.insert(4, 'CPPM Review Status', '')
-    df.insert(5, 'PECM_Delegate', '')
+# Print debug
+print("CIO DF after drop, before insert:")
+print("Columns:", cio_df.columns.tolist())
+print("Count:", len(cio_df.columns))
+
+# Insert columns
+cio_df.insert(4, 'CPPM Review Status', '')
+cio_df.insert(5, 'PECM_Delegate', '')
+
+# Rename columns after insert
+cio_df.columns = [
+    'AIT #', 'AIT Name', 'Assessment Name', 'Trident status',
+    'CPPM Review Status', 'Due Date', 'PECM_Delegate',
+    'Application Owner'
+]
 
 # --- ADD EMPTY FINAL COLUMNS ---
 aps_df['Support Owner'] = ''
@@ -57,7 +69,7 @@ cio_df['APS SLT'] = ''
 cio_df['Tech Exec'] = ''
 cio_df['CIO Exec'] = ''
 
-# --- MERGE LOOKUP DATA ---
+# --- PERFORM VLOOKUPS (MERGE) ---
 lookup1 = lookup1[['app_id', 'Support Owner', 'APS SLT']]
 lookup2 = lookup2[['app_id', 'Tech Exec', 'CIO Exec']]
 
@@ -97,7 +109,7 @@ cio_mod_pivot = cio_df.pivot_table(
     aggfunc='count'
 ).reset_index()
 
-# --- EXPORT TO EXCEL ---
+# --- EXPORT ALL TO EXCEL ---
 with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
     aps_df.to_excel(writer, sheet_name="APS Attestations", index=False)
     cio_df.to_excel(writer, sheet_name="CIO Attestations", index=False)
@@ -106,7 +118,7 @@ with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
     aps_mod_pivot.to_excel(writer, sheet_name="APS Summary", index=False)
     cio_mod_pivot.to_excel(writer, sheet_name="CIO Summary", index=False)
 
-# --- FORMAT SUMMARY SHEETS ---
+# --- APPLY FORMATTING TO FINAL SUMMARY SHEETS ---
 wb = load_workbook(output_path)
 
 green_fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
@@ -153,6 +165,6 @@ def format_sheet(ws, fill_color):
 format_sheet(wb["APS Summary"], blue_fill)
 format_sheet(wb["CIO Summary"], green_fill)
 
+# Save workbook
 wb.save(output_path)
-
 print(f"✅ Done! File saved to: {output_path}")
