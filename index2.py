@@ -13,8 +13,8 @@ output_path = os.path.join(folder, "attestation_report.xlsx")
 # --- LOAD DATA ---
 aps_df = pd.read_excel(aps_path)
 cio_df = pd.read_excel(cio_path)
-lookup1 = pd.read_excel(lookup_path, sheet_name="sheet")    # For Support Owner, APS SLT
-lookup2 = pd.read_excel(lookup_path, sheet_name="sheet2")   # For Tech Exec, CIO Exec
+lookup1 = pd.read_excel(lookup_path, sheet_name="Sheet1")    # For Support Owner, APS SLT
+lookup2 = pd.read_excel(lookup_path, sheet_name="Sheet2")    # For Tech Exec, CIO Exec
 
 # --- CLEAN & RENAME APS FILE ---
 aps_df.columns = ['contextid', 'context name', 'title', 'status', 'due date', 'completion date', 'accountable']
